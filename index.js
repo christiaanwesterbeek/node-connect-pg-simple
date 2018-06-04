@@ -21,9 +21,9 @@ module.exports = function (session) {
       throw new Error('`pgPromise` is required for this fork');
     }
     this.columns = {
-      sid: this.fields && this.fields.sid || 'sid',
-      sess: this.fields && this.fields.sess || 'sess',
-      expire: this.fields && this.fields.expire || 'expire',
+      sid: options.fields && options.fields.sid || 'sid',
+      sess: options.fields && options.fields.sess || 'sess',
+      expire: options.fields && options.fields.expire || 'expire',
     }
 
     this.ttl = options.ttl;
@@ -202,8 +202,8 @@ module.exports = function (session) {
    */
 
   PGStore.prototype.get = function (sid, fn) {
-    this.query('SELECT sess FROM ' + this.quotedTable() + ' WHERE $1~ = $2 AND $3~ >= to_timestamp($4)', [
-      this.columns.sid, sid, this.columns.expire, currentTimestamp()
+    this.query('SELECT $5~ FROM ' + this.quotedTable() + ' WHERE $1~ = $2 AND $3~ >= to_timestamp($4)', [
+      this.columns.sid, sid, this.columns.expire, currentTimestamp(), this.columns.sess
     ], function (err, data) {
       if (err) { return fn(err); }
       if (!data) { return fn(); }
@@ -266,7 +266,7 @@ module.exports = function (session) {
 
     this.query(
       'UPDATE ' + this.quotedTable() + ' SET $1~ = to_timestamp($2) WHERE $2~ = $4 RETURNING $2~', [
-        this.columns.expiry, expireTime, this.columns.sid, sid],
+        this.columns.expire, expireTime, this.columns.sid, sid],
       function (err) { fn(err); }
     );
   };
