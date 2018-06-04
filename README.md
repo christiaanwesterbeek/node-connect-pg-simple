@@ -2,6 +2,10 @@
 
 A simple, minimal PostgreSQL session store for Express/Connect
 
+Forked from [sutoiku/node-connect-pg-simple](https://github.com/sutoiku/node-connect-pg-simple) that uses the INSERT ON CONFLICT UPDATE statement
+
+This fork brings custom field names to the game. This fork requires the usage of `pgPromise`.
+
 [![Build Status](https://travis-ci.org/voxpelli/node-connect-pg-simple.svg?branch=master)](https://travis-ci.org/voxpelli/node-connect-pg-simple)
 [![Coverage Status](https://img.shields.io/coveralls/voxpelli/node-connect-pg-simple.svg)](https://coveralls.io/r/voxpelli/node-connect-pg-simple)
 [![Dependency Status](https://gemnasium.com/voxpelli/node-connect-pg-simple.svg)](https://gemnasium.com/voxpelli/node-connect-pg-simple)
@@ -58,6 +62,21 @@ app.use(session({
   resave: false,
   cookie: { maxAge: 30 * 24 * 60 * 60 * 1000 } // 30 days
 }));
+
+app.use(session({
+  store: new pgSession({
+    pgPromise : db, // Existing instance of `pg-promise` required
+    fields: {
+      sid:  'id', //default is 'sid'
+      sess: 'data' // default is 'sess'
+      expire: 'expiration'  // default is 'expire'
+    }
+  }),
+  secret: process.env.FOO_COOKIE_SECRET,
+  resave: false,
+  cookie: { maxAge: 30 * 24 * 60 * 60 * 1000 } // 30 days
+}));
+
 ```
 
 Express 3 (and similar for Connect):

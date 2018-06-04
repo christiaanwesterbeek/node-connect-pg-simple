@@ -17,6 +17,14 @@ module.exports = function (session) {
 
     this.schemaName = options.schemaName || null;
     this.tableName = options.tableName || 'session';
+    if (!options.pgPromise) {
+      throw new Error('`pgPromise` is required for this fork');
+    }
+    this.columns = {
+      sid: this.fields && this.fields.sid || 'sid',
+      sess: this.fields && this.fields.sess || 'sess',
+      expire: this.fields && this.fields.expire || 'expire',
+    }
 
     this.ttl = options.ttl;
 
@@ -103,7 +111,10 @@ module.exports = function (session) {
    */
 
   PGStore.prototype.pruneSessions = function (fn) {
-    this.query('DELETE FROM ' + this.quotedTable() + ' WHERE expire < to_timestamp($1)', [currentTimestamp()], function (err) {
+    this.query(
+      'DELETE FROM ' + this.quotedTable() + ' WHERE $1~ < to_timestamp($2)', [
+      this.columns.expire, currentTimestamp()
+    ], function (err) {
       if (fn && typeof fn === 'function') {
         return fn(err);
       }
@@ -191,7 +202,9 @@ module.exports = function (session) {
    */
 
   PGStore.prototype.get = function (sid, fn) {
-    this.query('SELECT sess FROM ' + this.quotedTable() + ' WHERE sid = $1 AND expire >= to_timestamp($2)', [sid, currentTimestamp()], function (err, data) {
+    this.query('SELECT sess FROM ' + this.quotedTable() + ' WHERE $1~ = $2 AND $3~ >= to_timestamp($4)', [
+      this.columns.sid, sid, this.columns.expire, currentTimestamp()
+    ], function (err, data) {
       if (err) { return fn(err); }
       if (!data) { return fn(); }
       try {
@@ -214,8 +227,11 @@ module.exports = function (session) {
   PGStore.prototype.set = function (sid, sess, fn) {
     const self = this;
     const expireTime = this.getExpireTime(sess.cookie.maxAge);
-    const query = 'INSERT INTO ' + self.quotedTable() + ' (sess, expire, sid) SELECT $1, to_timestamp($2), $3 ON CONFLICT (sid) DO UPDATE SET sess=$1, expire=to_timestamp($2) RETURNING sid';
-    this.query(query, [sess, expireTime, sid], function (err, data) {
+    const query = 'INSERT INTO ' + self.quotedTable() + ' ($1~, $3~, $5~) SELECT $2, to_timestamp($4), $6 ON CONFLICT ($5~) DO UPDATE SET $1~=$2, $3~=to_timestamp($4) RETURNING $5~';
+    this.query(
+      query, [
+      this.columns.sess, sess, this.columns.expire, expireTime, this.columns.sid, sid
+    ], function (err, data) {
       if (fn) { fn.apply(this, err); }
     });
   };
@@ -228,7 +244,10 @@ module.exports = function (session) {
    */
 
   PGStore.prototype.destroy = function (sid, fn) {
-    this.query('DELETE FROM ' + this.quotedTable() + ' WHERE sid = $1', [sid], function (err) {
+    this.query(
+      'DELETE FROM ' + this.quotedTable() + ' WHERE $1~ = $2', [
+      this.columns.sid, sid
+    ], function (err) {
       if (fn) { fn(err); }
     });
   };
@@ -246,8 +265,8 @@ module.exports = function (session) {
     const expireTime = this.getExpireTime(sess.cookie.maxAge);
 
     this.query(
-      'UPDATE ' + this.quotedTable() + ' SET expire = to_timestamp($1) WHERE sid = $2 RETURNING sid',
-      [expireTime, sid],
+      'UPDATE ' + this.quotedTable() + ' SET $1~ = to_timestamp($2) WHERE $2~ = $4 RETURNING $2~', [
+        this.columns.expiry, expireTime, this.columns.sid, sid],
       function (err) { fn(err); }
     );
   };
