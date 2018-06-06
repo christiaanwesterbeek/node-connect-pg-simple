@@ -208,7 +208,8 @@ module.exports = function (session) {
       if (err) { return fn(err); }
       if (!data) { return fn(); }
       try {
-        return fn(null, (typeof data.sess === 'string') ? JSON.parse(data.sess) : data.sess);
+        const sessValue = data[this.columns.sess];
+        return fn(null, (typeof sessValue === 'string') ? JSON.parse(sessValue) : sessValue);
       } catch (e) {
         return this.destroy(sid, fn);
       }
