@@ -265,7 +265,7 @@ module.exports = function (session) {
     const expireTime = this.getExpireTime(sess.cookie.maxAge);
 
     this.query(
-      'UPDATE ' + this.quotedTable() + ' SET $1~ = to_timestamp($2) WHERE $2~ = $4 RETURNING $2~', [
+      'UPDATE ' + this.quotedTable() + ' SET $1~ = to_timestamp($2) WHERE $3~ = $4 RETURNING $3~', [
         this.columns.expire, expireTime, this.columns.sid, sid],
       function (err) { fn(err); }
     );
