@@ -23,8 +23,8 @@ module.exports = function (session) {
     this.columns = {
       sid: options.fields && options.fields.sid || 'sid',
       sess: options.fields && options.fields.sess || 'sess',
-      expire: options.fields && options.fields.expire || 'expire',
-    }
+      expire: options.fields && options.fields.expire || 'expire'
+    };
 
     this.ttl = options.ttl;
 
@@ -113,24 +113,25 @@ module.exports = function (session) {
   PGStore.prototype.pruneSessions = function (fn) {
     this.query(
       'DELETE FROM ' + this.quotedTable() + ' WHERE $1~ < to_timestamp($2)', [
-      this.columns.expire, currentTimestamp()
-    ], function (err) {
-      if (fn && typeof fn === 'function') {
-        return fn(err);
-      }
-
-      if (err) {
-        this.errorLog('Failed to prune sessions:', err.message);
-      }
-
-      if (this.pruneSessionInterval && !this.closed) {
-        if (this.pruneTimer) {
-          clearTimeout(this.pruneTimer);
+        this.columns.expire, currentTimestamp()
+      ], function (err) {
+        if (fn && typeof fn === 'function') {
+          return fn(err);
         }
-        this.pruneTimer = setTimeout(this.pruneSessions.bind(this, true), this.pruneSessionInterval);
-        this.pruneTimer.unref();
-      }
-    }.bind(this));
+
+        if (err) {
+          this.errorLog('Failed to prune sessions:', err.message);
+        }
+
+        if (this.pruneSessionInterval && !this.closed) {
+          if (this.pruneTimer) {
+            clearTimeout(this.pruneTimer);
+          }
+          this.pruneTimer = setTimeout(this.pruneSessions.bind(this, true), this.pruneSessionInterval);
+          this.pruneTimer.unref();
+        }
+      }.bind(this)
+    );
   };
 
   /**
@@ -231,10 +232,11 @@ module.exports = function (session) {
     const query = 'INSERT INTO ' + self.quotedTable() + ' ($1~, $3~, $5~) SELECT $2, to_timestamp($4), $6 ON CONFLICT ($5~) DO UPDATE SET $1~=$2, $3~=to_timestamp($4) RETURNING $5~';
     this.query(
       query, [
-      this.columns.sess, sess, this.columns.expire, expireTime, this.columns.sid, sid
-    ], function (err, data) {
-      if (fn) { fn.apply(this, err); }
-    });
+        this.columns.sess, sess, this.columns.expire, expireTime, this.columns.sid, sid
+      ], function (err, data) {
+        if (fn) { fn.apply(this, err); }
+      }
+    );
   };
 
   /**
@@ -247,10 +249,11 @@ module.exports = function (session) {
   PGStore.prototype.destroy = function (sid, fn) {
     this.query(
       'DELETE FROM ' + this.quotedTable() + ' WHERE $1~ = $2', [
-      this.columns.sid, sid
-    ], function (err) {
-      if (fn) { fn(err); }
-    });
+        this.columns.sid, sid
+      ], function (err) {
+        if (fn) { fn(err); }
+      }
+    );
   };
 
   /**
